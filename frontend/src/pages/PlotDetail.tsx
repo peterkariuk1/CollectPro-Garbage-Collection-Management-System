@@ -1,7 +1,9 @@
-import { useParams, useNavigate } from "react-router-dom"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getAuth } from "firebase/auth";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -9,39 +11,90 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { StatusBadge } from "@/components/status-badge"
-import { PlotTypeBadge } from "@/components/plot-type-badge"
-import { mockPlots, mockTenants } from "@/data/mock-data"
-import { ArrowLeft, MapPin, Phone, Download, FileText, Building2 } from "lucide-react"
+} from "@/components/ui/table";
+import { StatusBadge } from "@/components/status-badge";
+import { PlotTypeBadge } from "@/components/plot-type-badge";
+
+import {
+  ArrowLeft,
+  MapPin,
+  Phone,
+  Download,
+  FileText,
+  Building2,
+} from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 export default function PlotDetail() {
-  const { plotId } = useParams()
-  const navigate = useNavigate()
-  
-  const plot = mockPlots.find(p => p.id === plotId)
-  const tenants = mockTenants.filter(t => t.plotId === plotId)
-  
+  const { plotId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = location.state?.from || "/dashboard";
+
+  const [plot, setPlot] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPlot = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const token = await user.getIdToken();
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/plots/${plotId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const data = await res.json();
+        if (res.ok) setPlot(data.plot);
+      } catch (err) {
+        console.error("FETCH PLOT ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlot();
+  }, [plotId]);
+
+  if (loading) {
+    return <div className="container mx-auto px-4 py-6">Loading...</div>;
+  }
+
   if (!plot) {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold mb-2">Plot Not Found</h2>
-          <p className="text-muted-foreground mb-4">The plot you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/dashboard')}>
+          <p className="text-muted-foreground mb-4">
+            The plot you're looking for doesn't exist.
+          </p>
+          <Button onClick={() => navigate(backTo)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            Back
           </Button>
         </div>
       </div>
-    )
+    );
   }
+
+  const tenants = plot.tenants || [];
+
+  // Safe derived values (backend does not provide payments yet)
+  const totalPaid = plot.totalPaid ?? 0;
+  const totalExpected =
+    plot.plotType === "lumpsum"
+      ? plot.lumpsumExpected ?? 0
+      : tenants.length * (plot.feePerTenant ?? 0);
+  const totalUnpaid = totalExpected - totalPaid;
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={() => navigate('/dashboard')}>
+        <Button variant="outline" onClick={() => navigate(backTo)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
@@ -54,7 +107,7 @@ export default function PlotDetail() {
             </div>
             <div className="flex items-center gap-1">
               <Phone className="h-4 w-4" />
-              {plot.caretakerName} - {plot.caretakerPhone}
+              {plot.caretakerName || "N/A"} - {plot.caretakerPhone || "N/A"}
             </div>
           </div>
         </div>
@@ -83,21 +136,29 @@ export default function PlotDetail() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Type:</span>
-              <PlotTypeBadge type={plot.type} />
+              <PlotTypeBadge type={plot.plotType} />
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Units:</span>
               <span className="font-medium">{plot.units}</span>
             </div>
-            {plot.type === "lumpsum" && (
+
+            {plot.plotType === "lumpsum" && (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Lumpsum Expected:</span>
-                <span className="font-medium">KES {plot.lumpsumExpected?.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground">
+                  Lumpsum Expected:
+                </span>
+                <span className="font-medium">
+                  KES {plot.lumpsumExpected?.toLocaleString()}
+                </span>
               </div>
             )}
+
             {plot.feePerTenant && (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Fee per Tenant:</span>
+                <span className="text-sm text-muted-foreground">
+                  Fee per Tenant:
+                </span>
                 <span className="font-medium">KES {plot.feePerTenant}</span>
               </div>
             )}
@@ -111,30 +172,46 @@ export default function PlotDetail() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Expected:</span>
-              <span className="font-medium">KES {plot.totalExpected.toLocaleString()}</span>
+              <span className="text-sm text-muted-foreground">
+                Total Expected:
+              </span>
+              <span className="font-medium">
+                KES {totalExpected.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-green-600">Total Paid:</span>
-              <span className="font-medium text-green-600">KES {plot.totalPaid.toLocaleString()}</span>
+              <span className="font-medium text-green-600">
+                KES {totalPaid.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-red-600">Total Unpaid:</span>
-              <span className="font-medium text-red-600">KES {plot.totalUnpaid.toLocaleString()}</span>
+              <span className="font-medium text-red-600">
+                KES {totalUnpaid.toLocaleString()}
+              </span>
             </div>
             <div className="w-full bg-muted rounded-full h-3">
-              <div 
+              <div
                 className="bg-green-600 h-3 rounded-full transition-all"
-                style={{ width: `${(plot.totalPaid / plot.totalExpected) * 100}%` }}
+                style={{
+                  width:
+                    totalExpected === 0
+                      ? "0%"
+                      : `${(totalPaid / totalExpected) * 100}%`,
+                }}
               />
             </div>
             <div className="text-center text-sm text-muted-foreground">
-              {Math.round((plot.totalPaid / plot.totalExpected) * 100)}% Collected
+              {totalExpected === 0
+                ? "0%"
+                : Math.round((totalPaid / totalExpected) * 100)}
+              % Collected
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* Quick Actions — unchanged */}
         <Card className="card-elevated">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -156,8 +233,8 @@ export default function PlotDetail() {
         </Card>
       </div>
 
-      {/* Tenants Table (for Individual plots) */}
-      {plot.type === "individual" && tenants.length > 0 && (
+      {/* Tenants Table */}
+      {plot.plotType === "individual" && tenants.length > 0 && (
         <Card className="card-elevated">
           <CardHeader>
             <CardTitle>Tenant Payment Status</CardTitle>
@@ -176,20 +253,16 @@ export default function PlotDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tenants.map((tenant) => (
-                  <TableRow key={tenant.id}>
+                {tenants.map((tenant: any, i: number) => (
+                  <TableRow key={i}>
                     <TableCell className="font-medium">{tenant.name}</TableCell>
                     <TableCell>{tenant.phone}</TableCell>
-                    <TableCell>KES {tenant.fee}</TableCell>
+                    <TableCell>KES {plot.feePerTenant ?? "N/A"}</TableCell>
                     <TableCell>
-                      <StatusBadge status={tenant.status} />
+                      <StatusBadge status="unpaid" />
                     </TableCell>
-                    <TableCell>
-                      {tenant.datePaid ? new Date(tenant.datePaid).toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {tenant.mpesaRef || '-'}
-                    </TableCell>
+                    <TableCell>-</TableCell>
+                    <TableCell className="font-mono text-sm">-</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm">
                         <Download className="h-3 w-3 mr-1" />
@@ -204,8 +277,8 @@ export default function PlotDetail() {
         </Card>
       )}
 
-      {/* Lumpsum Payment Info */}
-      {plot.type === "lumpsum" && (
+      {/* Lumpsum Info */}
+      {plot.plotType === "lumpsum" && (
         <Card className="card-elevated">
           <CardHeader>
             <CardTitle>Lumpsum Payment Information</CardTitle>
@@ -213,24 +286,39 @@ export default function PlotDetail() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-sm text-muted-foreground">Expected Amount</div>
-                <div className="text-2xl font-bold">KES {plot.lumpsumExpected?.toLocaleString()}</div>
+                <div className="text-sm text-muted-foreground">
+                  Expected Amount
+                </div>
+                <div className="text-2xl font-bold">
+                  KES {plot.lumpsumExpected?.toLocaleString()}
+                </div>
               </div>
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-sm text-muted-foreground">Amount Received</div>
-                <div className="text-2xl font-bold text-green-600">KES {plot.totalPaid.toLocaleString()}</div>
+                <div className="text-sm text-muted-foreground">
+                  Amount Received
+                </div>
+                <div className="text-2xl font-bold text-green-600">
+                  KES {totalPaid.toLocaleString()}
+                </div>
               </div>
               <div className="text-center p-4 border rounded-lg">
-                <div className="text-sm text-muted-foreground">MPESA Number</div>
+                <div className="text-sm text-muted-foreground">
+                  MPESA Number
+                </div>
                 <div className="font-mono">{plot.mpesaNumber}</div>
               </div>
             </div>
             <div className="flex justify-center">
-              <StatusBadge status={plot.totalPaid >= (plot.lumpsumExpected || 0) ? "paid" : "unpaid"} size="md" />
+              <StatusBadge
+                status={
+                  totalPaid >= (plot.lumpsumExpected || 0) ? "paid" : "unpaid"
+                }
+                size="md"
+              />
             </div>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }

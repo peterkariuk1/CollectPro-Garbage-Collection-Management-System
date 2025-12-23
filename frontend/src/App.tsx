@@ -10,7 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import PlotDetail from "./pages/PlotDetail";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "@/pages/admin/AdminLayout";
-import { AdminDashboard } from "@/pages/admin/AdminDashboard";
+import { RecentPayments } from "./pages/admin/RecentPayments";
 import { ViewPlots } from "@/pages/admin/ViewPlots";
 import { RegisterPlot } from "@/pages/admin/RegisterPlot";
 import { EditPlot } from "@/pages/admin/EditPlot";
@@ -54,13 +54,12 @@ const App = () => (
               path="/admin"
               element={
                 <>
-                  <Header showSearch={false} />{" "}
-                  {/* header without search/month */}
+                  <Header />{" "}
                   <AdminLayout />
                 </>
               }
             >
-              <Route index element={<AdminDashboard />} />
+              <Route index element={<RecentPayments />} />
               <Route path="plots" element={<ViewPlots />} />
               <Route path="plots/new" element={<RegisterPlot />} />
               <Route path="plots/:plotId/edit" element={<EditPlot />} />

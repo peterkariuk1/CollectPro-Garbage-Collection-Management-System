@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, X, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,24 +67,6 @@ export function EditPlot() {
     }
   }, [plotId]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.size <= 5 * 1024 * 1024) { // 5MB limit
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      alert("File size must be less than 5MB");
-    }
-  };
-
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-  };
 
   const addTenant = () => {
     const newTenant: Tenant = {
@@ -311,50 +293,6 @@ export function EditPlot() {
                     </p>
                   )}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Image Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Plot Image</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!imagePreview ? (
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <div className="space-y-2">
-                  <Label htmlFor="image-upload" className="cursor-pointer">
-                    <span className="text-primary hover:underline">Click to upload</span> or drag and drop
-                  </Label>
-                  <p className="text-sm text-muted-foreground">PNG, JPG up to 5MB</p>
-                </div>
-                <Input
-                  id="image-upload"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </div>
-            ) : (
-              <div className="relative inline-block">
-                <img 
-                  src={imagePreview} 
-                  alt="Plot preview" 
-                  className="w-32 h-32 object-cover rounded-lg border"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={removeImage}
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
               </div>
             )}
           </CardContent>

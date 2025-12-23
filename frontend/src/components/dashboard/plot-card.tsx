@@ -1,30 +1,39 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { PlotTypeBadge } from "@/components/plot-type-badge"
-import { MapPin, Phone, MoreVertical, Eye, Download, Edit, Trash2, Building2 } from "lucide-react"
-import { Plot } from "@/data/mock-data"
-import { useNavigate } from "react-router-dom"
+} from "@/components/ui/dropdown-menu";
+import { PlotTypeBadge } from "@/components/plot-type-badge";
+import {
+  MapPin,
+  Phone,
+  MoreVertical,
+  Eye,
+  Download,
+  Edit,
+  Trash2,
+  Building2,
+} from "lucide-react";
+import { Plot } from "@/data/mock-data";
+import { useNavigate } from "react-router-dom";
 
 interface PlotCardProps {
-  plot: Plot
+  plot: Plot;
 }
 
 export function PlotCard({ plot }: PlotCardProps) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleContact = () => {
-    window.open(`tel:${plot.caretakerPhone}`)
-  }
+    window.open(`tel:${plot.caretakerPhone}`);
+  };
 
   const handleViewDetails = () => {
-    navigate(`/plot/${plot.id}`)
-  }
+    navigate(`/plot/${plot.id}`);
+  };
 
   return (
     <Card className="card-elevated transition-smooth hover:shadow-lg hover:scale-[1.02] cursor-pointer group">
@@ -55,7 +64,7 @@ export function PlotCard({ plot }: PlotCardProps) {
                   {plot.name}
                 </h3>
               </div>
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="">
@@ -71,7 +80,9 @@ export function PlotCard({ plot }: PlotCardProps) {
                     <Download className="h-4 w-4 mr-2" />
                     Generate Receipt
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/admin/plots/${plot.id}/edit`)}>
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/admin/plots/${plot.id}/edit`)}
+                  >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Plot
                   </DropdownMenuItem>
@@ -94,9 +105,9 @@ export function PlotCard({ plot }: PlotCardProps) {
                   <Phone className="h-3 w-3 mr-1" />
                   {plot.caretakerName}
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleContact}
                   className="h-6 px-2 text-xs"
                 >
@@ -121,12 +132,14 @@ export function PlotCard({ plot }: PlotCardProps) {
               <div className="text-xs text-muted-foreground text-center">
                 Total Expected: KES {plot.totalExpected.toLocaleString()}
               </div>
-              
+
               {/* Progress Bar */}
               <div className="w-full bg-muted rounded-full h-2">
-                <div 
+                <div
                   className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(plot.totalPaid / plot.totalExpected) * 100}%` }}
+                  style={{
+                    width: `${(plot.totalPaid / plot.totalExpected) * 100}%`,
+                  }}
                 />
               </div>
             </div>
@@ -134,5 +147,5 @@ export function PlotCard({ plot }: PlotCardProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

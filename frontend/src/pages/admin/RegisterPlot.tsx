@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   Select,
   SelectContent,
@@ -15,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getAuth } from "firebase/auth";
 
 interface Tenant {
   id: string;
@@ -24,10 +28,12 @@ interface Tenant {
 
 export function RegisterPlot() {
   const navigate = useNavigate();
-  const [plotType, setPlotType] = useState<"lumpsum" | "individual" | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const [plotType, setPlotType] = useState<"lumpsum" | "individual" | null>(
+    null
+  );
   const [tenants, setTenants] = useState<Tenant[]>([]);
+
   const [formData, setFormData] = useState({
     name: "",
     location: "",
@@ -36,57 +42,221 @@ export function RegisterPlot() {
     units: "",
     lumpsumExpected: "",
     mpesaNumber: "",
-    feePerTenant: "250"
+    feePerTenant: "250",
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.size <= 5 * 1024 * 1024) { // 5MB limit
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      alert("File size must be less than 5MB");
-    }
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [phoneValidity, setPhoneValidity] = useState({
+    caretaker: true,
+    lumpsum: true,
+  });
+  const [tenantPhoneValidity, setTenantPhoneValidity] = useState<
+    Record<string, boolean>
+  >({});
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [snackbarSeverity, setSnackbarSeverity] = useState<
+    "success" | "error" | "warning"
+  >("success");
+
+  const showSnackbar = (
+    message: string,
+    severity: "success" | "error" | "warning" = "success"
+  ) => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
   };
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-  };
+  const handleCloseSnackbar = () => setSnackbarOpen(false);
 
   const addTenant = () => {
-    const newTenant: Tenant = {
-      id: Date.now().toString(),
-      name: "",
-      phone: ""
-    };
-    setTenants([...tenants, newTenant]);
+    setTenants([
+      ...tenants,
+      { id: Date.now().toString(), name: "", phone: "" },
+    ]);
   };
 
   const updateTenant = (id: string, field: keyof Tenant, value: string) => {
-    setTenants(tenants.map(tenant => 
-      tenant.id === id ? { ...tenant, [field]: value } : tenant
-    ));
+    setTenants(
+      tenants.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    );
   };
 
   const removeTenant = (id: string) => {
-    setTenants(tenants.filter(tenant => tenant.id !== id));
+    setTenants(tenants.filter((t) => t.id !== id));
+  };
+  const isCompleteKenyanPhone = (value: string) =>
+    value.startsWith("254") && value.length === 12;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!plotType) {
+      showSnackbar("Please select a plot type", "warning");
+      return;
+    }
+
+    if (plotType === "individual" && tenants.length === 0) {
+      showSnackbar("Add at least one tenant", "warning");
+      return;
+    }
+
+    // ✅ Phone validations before submit
+    if (
+      formData.caretakerPhone &&
+      !isCompleteKenyanPhone(formData.caretakerPhone)
+    ) {
+      showSnackbar(
+        "Caretaker phone number must be complete (254XXXXXXXXX)",
+        "warning"
+      );
+      return;
+    }
+
+    if (
+      plotType === "lumpsum" &&
+      !isCompleteKenyanPhone(formData.mpesaNumber)
+    ) {
+      showSnackbar(
+        "MPESA phone number must be complete (254XXXXXXXXX)",
+        "warning"
+      );
+      return;
+    }
+
+    if (plotType === "individual") {
+      const incompleteTenantPhones = tenants.some(
+        (t) => !isCompleteKenyanPhone(t.phone)
+      );
+
+      if (incompleteTenantPhones) {
+        showSnackbar(
+          "All tenant phone numbers must be complete (254XXXXXXXXX)",
+          "warning"
+        );
+        return;
+      }
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        showSnackbar("You must be logged in", "warning");
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+
+      const payload = {
+        plotType,
+        ...formData,
+        tenants: plotType === "individual" ? tenants : [],
+      };
+
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/plots/registerplot`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Request failed");
+      }
+
+      showSnackbar("Plot registered successfully", "success");
+
+      setFormData({
+        name: "",
+        location: "",
+        caretakerName: "",
+        caretakerPhone: "",
+        units: "",
+        lumpsumExpected: "",
+        mpesaNumber: "",
+        feePerTenant: "250",
+      });
+      setTenants([]);
+    } catch (err: any) {
+      showSnackbar(err.message || "Something went wrong, try again", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form data:", { ...formData, plotType, selectedImage, tenants });
-    navigate("/admin/plots");
+  const formatKenyanMobile = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 12);
+
+    // Already formatted correctly
+    if (digits.startsWith("254") && digits.length === 12) {
+      return { value: digits, isValid: true };
+    }
+
+    // Still typing local number
+    if (digits.startsWith("07") || digits.startsWith("01")) {
+      if (digits.length < 10) {
+        return { value: digits, isValid: true }; // don't warn while typing
+      }
+
+      return {
+        value: `254${digits.slice(1)}`,
+        isValid: true,
+      };
+    }
+
+    // Empty field (no warning)
+    if (digits.length === 0) {
+      return { value: "", isValid: true };
+    }
+
+    // Invalid prefix
+    return { value: digits, isValid: false };
+  };
+
+  const handlePhoneChange =
+    (
+      field: "caretakerPhone" | "mpesaNumber",
+      validityKey: "caretaker" | "lumpsum"
+    ) =>
+    (value: string) => {
+      const { value: formatted, isValid } = formatKenyanMobile(value);
+
+      setFormData((prev) => ({ ...prev, [field]: formatted }));
+      setPhoneValidity((prev) => ({ ...prev, [validityKey]: isValid }));
+    };
+
+  const handleTenantPhoneChange = (tenantId: string, value: string) => {
+    const { value: formatted, isValid } = formatKenyanMobile(value);
+
+    updateTenant(tenantId, "phone", formatted);
+
+    setTenantPhoneValidity((prev) => ({
+      ...prev,
+      [tenantId]: isValid,
+    }));
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/admin/plots")}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/admin/plots")}
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Plots
         </Button>
@@ -97,7 +267,6 @@ export function RegisterPlot() {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-        {/* Basic Information */}
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
@@ -109,7 +278,13 @@ export function RegisterPlot() {
                 id="name"
                 placeholder="e.g., Plot A"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    name: e.target.value.slice(0, 25),
+                  })
+                }
+                maxLength={25}
                 required
               />
             </div>
@@ -120,31 +295,66 @@ export function RegisterPlot() {
                 id="location"
                 placeholder="e.g., Hunters Road, Nairobi"
                 value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    location: e.target.value.slice(0, 30),
+                  })
+                }
+                maxLength={30}
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="caretaker-name">Caretaker Name *</Label>
+                <Label htmlFor="caretaker-name">
+                  Caretaker Name{" "}
+                  <span className="text-sm text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
                 <Input
                   id="caretaker-name"
                   placeholder="John Doe"
                   value={formData.caretakerName}
-                  onChange={(e) => setFormData({...formData, caretakerName: e.target.value})}
-                  required
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      caretakerName: e.target.value.slice(0, 25),
+                    })
+                  }
+                  maxLength={25}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="caretaker-phone">Caretaker Phone *</Label>
-                <Input
-                  id="caretaker-phone"
-                  placeholder="0712345678"
-                  value={formData.caretakerPhone}
-                  onChange={(e) => setFormData({...formData, caretakerPhone: e.target.value})}
-                  required
-                />
+                <Label htmlFor="caretaker-phone">
+                  Caretaker Phone{" "}
+                  <span className="text-sm text-muted-foreground">
+                    (optional)
+                  </span>
+                </Label>
+
+                <div className="relative">
+                  <Input
+                    id="caretaker-phone"
+                    placeholder="0712345678"
+                    value={formData.caretakerPhone}
+                    onChange={(e) =>
+                      handlePhoneChange(
+                        "caretakerPhone",
+                        "caretaker"
+                      )(e.target.value)
+                    }
+                  />
+
+                  {!phoneValidity.caretaker && (
+                    <span className="absolute mt-1 text-xs text-amber-600">
+                      Must start with <strong>07 , 01</strong>and have
+                      <strong>10 digits</strong>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -157,38 +367,52 @@ export function RegisterPlot() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div 
+              <div
                 className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                  plotType === "lumpsum" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  plotType === "lumpsum"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
                 }`}
                 onClick={() => setPlotType("lumpsum")}
               >
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    checked={plotType === "lumpsum"} 
+                  <input
+                    type="radio"
+                    checked={plotType === "lumpsum"}
                     onChange={() => setPlotType("lumpsum")}
                   />
-                  <Badge variant="secondary" className="bg-teal-100 text-teal-800">Lumpsum</Badge>
+                  <Badge
+                    variant="secondary"
+                    className="bg-teal-100 text-teal-800"
+                  >
+                    Lumpsum
+                  </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   One payment covers the entire plot
                 </p>
               </div>
 
-              <div 
+              <div
                 className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                  plotType === "individual" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                  plotType === "individual"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
                 }`}
                 onClick={() => setPlotType("individual")}
               >
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    checked={plotType === "individual"} 
+                  <input
+                    type="radio"
+                    checked={plotType === "individual"}
                     onChange={() => setPlotType("individual")}
                   />
-                  <Badge variant="secondary" className="bg-cyan-100 text-cyan-800">Individual</Badge>
+                  <Badge
+                    variant="secondary"
+                    className="bg-cyan-100 text-cyan-800"
+                  >
+                    Individual
+                  </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   Each tenant pays individually
@@ -207,29 +431,59 @@ export function RegisterPlot() {
                       type="number"
                       placeholder="10"
                       value={formData.units}
-                      onChange={(e) => setFormData({...formData, units: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({ ...formData, units: e.target.value })
+                      }
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lumpsum-expected">Lumpsum Expected (KES) *</Label>
+                    <Label htmlFor="lumpsum-expected">
+                      Lumpsum Expected (KES) *
+                    </Label>
                     <Input
                       id="lumpsum-expected"
                       type="number"
-                      placeholder="2500"
+                      placeholder="5500"
                       value={formData.lumpsumExpected}
-                      onChange={(e) => setFormData({...formData, lumpsumExpected: e.target.value})}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          lumpsumExpected: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="mpesa-number">MPESA Number</Label>
+                    <Label htmlFor="mpesa-number">
+                      MPESA N.0 *{" "}
+                      <span className="text-xs text-muted-foreground">
+                        {" "}
+                        (expected to make lumpsum payment)
+                      </span>
+                    </Label>
+
                     <Input
                       id="mpesa-number"
+                      type="number"
                       placeholder="0712345678"
                       value={formData.mpesaNumber}
-                      onChange={(e) => setFormData({...formData, mpesaNumber: e.target.value})}
+                      onChange={(e) =>
+                        handlePhoneChange(
+                          "mpesaNumber",
+                          "lumpsum"
+                        )(e.target.value)
+                      }
+                      required
                     />
+
+                    {!phoneValidity.lumpsum && (
+                      <span className="absolute mt-1 text-xs text-amber-600">
+                        Must start with <strong>07 , 01</strong>and have
+                        <strong>10 digits</strong>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -239,7 +493,12 @@ export function RegisterPlot() {
               <div className="space-y-4 pt-4 border-t">
                 <div className="space-y-2">
                   <Label htmlFor="fee-per-tenant">Fee per Tenant (KES) *</Label>
-                  <Select value={formData.feePerTenant} onValueChange={(value) => setFormData({...formData, feePerTenant: value})}>
+                  <Select
+                    value={formData.feePerTenant}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, feePerTenant: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -255,29 +514,49 @@ export function RegisterPlot() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <Label>Tenants</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addTenant}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addTenant}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Tenant
                     </Button>
                   </div>
 
                   {tenants.map((tenant, index) => (
-                    <div key={tenant.id} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                    <div
+                      key={tenant.id}
+                      className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end"
+                    >
                       <div className="space-y-1">
-                        <Label className="text-xs">Tenant Name</Label>
+                        <Label className="text-xs">Tenant Name *</Label>
                         <Input
                           placeholder="John Doe"
                           value={tenant.name}
-                          onChange={(e) => updateTenant(tenant.id, "name", e.target.value)}
+                          onChange={(e) =>
+                            updateTenant(tenant.id, "name", e.target.value)
+                          }
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">MPESA Phone</Label>
+                        <Label className="text-xs">Tenant's MPESA N.O</Label>
                         <Input
+                          type="number"
                           placeholder="0712345678"
                           value={tenant.phone}
-                          onChange={(e) => updateTenant(tenant.id, "phone", e.target.value)}
+                          onChange={(e) =>
+                            handleTenantPhoneChange(tenant.id, e.target.value)
+                          }
                         />
+
+                        {tenantPhoneValidity[tenant.id] === false && (
+                          <span className="absolute mt-1 text-xs text-amber-600">
+                            Must start with <strong>07 , 01</strong>and have
+                            <strong>10 digits</strong>
+                          </span>
+                        )}
                       </div>
                       <Button
                         type="button"
@@ -302,60 +581,35 @@ export function RegisterPlot() {
           </CardContent>
         </Card>
 
-        {/* Image Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Plot Image</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!imagePreview ? (
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <div className="space-y-2">
-                  <Label htmlFor="image-upload" className="cursor-pointer">
-                    <span className="text-primary hover:underline">Click to upload</span> or drag and drop
-                  </Label>
-                  <p className="text-sm text-muted-foreground">PNG, JPG up to 5MB</p>
-                </div>
-                <Input
-                  id="image-upload"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </div>
-            ) : (
-              <div className="relative inline-block">
-                <img 
-                  src={imagePreview} 
-                  alt="Plot preview" 
-                  className="w-32 h-32 object-cover rounded-lg border"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={removeImage}
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Submit */}
         <div className="flex gap-4">
-          <Button type="submit" disabled={!plotType}>
-            Save Plot
+          <Button type="submit" disabled={!plotType || isSubmitting}>
+            {isSubmitting ? <CircularProgress size={20} /> : "Save Plot"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => navigate("/admin/plots")}>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/admin/plots")}
+          >
             Cancel
           </Button>
         </div>
       </form>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={5000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

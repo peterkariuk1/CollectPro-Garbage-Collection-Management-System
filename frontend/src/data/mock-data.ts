@@ -6,7 +6,6 @@ export interface Plot {
   caretakerPhone: string
   type: "lumpsum" | "individual"
   units: number
-  image?: string
   lumpsumExpected?: number
   feePerTenant?: 200 | 250
   mpesaNumber?: string

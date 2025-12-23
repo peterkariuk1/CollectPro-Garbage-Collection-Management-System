@@ -1,16 +1,15 @@
 import { useState } from "react"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
-import { Home, Building2, UserPlus, Users, FileText, Settings, LogOut, Menu, X } from "lucide-react"
+import { Building2, UserPlus, Users, FileText, HousePlus, LogOut, Menu, X, CircleDollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 const adminNavItems = [
-  { title: "Dashboard", url: "/admin", icon: Home },
+  { title: "Payments", url: "/admin", icon: CircleDollarSign },
   { title: "View Plots", url: "/admin/plots", icon: Building2 },
-  { title: "Register Plot", url: "/admin/plots/new", icon: UserPlus },
+  { title: "Register Plot", url: "/admin/plots/new", icon: HousePlus },
   { title: "Tenants", url: "/admin/tenants", icon: Users },
   { title: "Receipts & Exports", url: "/admin/receipts", icon: FileText },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
 ]
 
 export function AdminLayout() {
@@ -47,7 +46,7 @@ export function AdminLayout() {
                 key={item.title}
                 onClick={() => {
                   navigate(item.url)
-                  setOpen(false) // close on mobile after click
+                  setOpen(false) 
                 }}
                 className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm
                   ${isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted"}`}
