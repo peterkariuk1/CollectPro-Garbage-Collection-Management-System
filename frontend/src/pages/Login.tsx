@@ -153,7 +153,7 @@ export default function Login() {
             </div>
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Jowabu General Merchants</CardTitle>
+            <CardTitle className="text-2xl font-bold">Jobawu General Merchants</CardTitle>
             <p className="text-muted-foreground mt-2">
               {isSignUp
                 ? "Sign up to request access. Admin will assign your role."
