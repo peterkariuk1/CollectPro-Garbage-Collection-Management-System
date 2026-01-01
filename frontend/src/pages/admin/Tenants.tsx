@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Search, Phone, Building2, DollarSign } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Phone, Building2, DollarSign, Printer } from "lucide-react";
+import { getAuth } from "firebase/auth";
+
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,88 +16,141 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 
-// Mock tenant data
-const mockTenants = [
-  {
-    id: "1",
-    name: "John Doe",
-    phone: "0712345678",
-    plotName: "Plot A",
-    plotLocation: "Hunters Road",
-    fee: 250,
-    status: "paid" as const,
-    lastPayment: "2025-09-15",
-  },
-  {
-    id: "2", 
-    name: "Jane Smith",
-    phone: "0787654321",
-    plotName: "Plot A",
-    plotLocation: "Hunters Road", 
-    fee: 250,
-    status: "unpaid" as const,
-    lastPayment: null,
-  },
-  {
-    id: "3",
-    name: "Mike Johnson", 
-    phone: "0798765432",
-    plotName: "Plot B",
-    plotLocation: "Riverside Drive",
-    fee: 200,
-    status: "pending" as const,
-    lastPayment: "2025-09-10",
-  },
-  {
-    id: "4",
-    name: "Sarah Wilson",
-    phone: "0723456789", 
-    plotName: "Plot C",
-    plotLocation: "Valley Road",
-    fee: 250,
-    status: "paid" as const,
-    lastPayment: "2025-09-14",
-  },
-];
+type RowType = "tenant" | "caretaker";
+
+interface TenantRow {
+  id: string;
+  type: RowType;
+  name: string;
+  phone: string;
+  plotName: string;
+  plotLocation: string;
+  fee: number;
+  status: "paid" | "unpaid" | "pending";
+  lastPayment: number;
+}
 
 export function Tenants() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [rows, setRows] = useState<TenantRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTenants = mockTenants.filter(tenant =>
-    tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tenant.phone.includes(searchTerm) ||
-    tenant.plotName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ===============================
+  // FETCH PLOTS → BUILD TENANTS
+  // ===============================
+  useEffect(() => {
+    const fetchPlots = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const token = await user.getIdToken();
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/plots/getplots`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        const derivedRows: TenantRow[] = [];
+
+        data.plots.forEach((plot: any) => {
+          // -------- CARETAKER ROW --------
+          if (plot.caretakerName && plot.caretakerPhone) {
+            derivedRows.push({
+              id: `caretaker-${plot.id}`,
+              type: "caretaker",
+              name: plot.caretakerName,
+              phone: plot.caretakerPhone,
+              plotName: plot.name,
+              plotLocation: plot.location,
+              fee: 0,
+              status: "unpaid",
+              lastPayment: 0,
+            });
+          }
+
+          // -------- TENANT ROWS (INDIVIDUAL ONLY) --------
+          if (plot.plotType === "individual" && Array.isArray(plot.tenants)) {
+            plot.tenants.forEach((tenant: any, index: number) => {
+              derivedRows.push({
+                id: `${plot.id}-tenant-${index}`,
+                type: "tenant",
+                name: tenant.name,
+                phone: tenant.phone,
+                plotName: plot.name,
+                plotLocation: plot.location,
+                fee: 0,
+                status: "unpaid",
+                lastPayment: 0,
+              });
+            });
+          }
+        });
+
+        setRows(derivedRows);
+      } catch (err) {
+        console.error("FETCH TENANTS ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlots();
+  }, []);
+
+  // ===============================
+  // LIVE SEARCH
+  // ===============================
+  const filteredRows = useMemo(() => {
+    const q = searchTerm.toLowerCase();
+
+    return rows.filter(
+      (row) =>
+        row.name.toLowerCase().includes(q) ||
+        row.phone.includes(q) ||
+        row.plotName.toLowerCase().includes(q) ||
+        row.plotLocation.toLowerCase().includes(q)
+    );
+  }, [rows, searchTerm]);
+
+  // ===============================
+  // STATS (TENANTS ONLY)
+  // ===============================
+  const tenantRows = rows.filter((r) => r.type === "tenant");
 
   const stats = {
-    total: mockTenants.length,
-    paid: mockTenants.filter(t => t.status === "paid").length,
-    unpaid: mockTenants.filter(t => t.status === "unpaid").length,
-    pending: mockTenants.filter(t => t.status === "pending").length,
+    total: tenantRows.length,
+    paid: 0,
+    pending: 0,
+    unpaid: tenantRows.length,
   };
 
   const handleContact = (phone: string) => {
     window.open(`tel:${phone}`);
   };
 
-  const handleGenerateReceipt = (tenantId: string) => {
-    console.log("Generate receipt for tenant:", tenantId);
-  };
-
+  // ===============================
+  // RENDER
+  // ===============================
   return (
     <div className="py-6 space-y-6 md:w-full w-[88vw] m-auto">
       <div>
         <h1 className="text-3xl font-bold">Tenant Management</h1>
         <p className="text-muted-foreground">
-          View and manage all tenants across plots
+          View tenants and caretakers across all plots
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
               Total Tenants
             </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -106,63 +161,65 @@ export function Tenants() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
               Paid This Month
             </CardTitle>
             <DollarSign className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">{stats.paid}</div>
+            <div className="text-2xl font-bold text-success">0</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
               Pending Payment
             </CardTitle>
             <DollarSign className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{stats.pending}</div>
+            <div className="text-2xl font-bold text-warning">0</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm text-muted-foreground">
               Unpaid
             </CardTitle>
             <DollarSign className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.unpaid}</div>
+            <div className="text-2xl font-bold text-destructive">
+              {stats.unpaid}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search tenants, phone, or plot..."
+          placeholder="Search tenant, caretaker, phone or plot..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
         />
       </div>
 
-      {/* Tenants Table */}
+      {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Tenants</CardTitle>
+          <CardTitle>All Tenants And Caretakers</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tenant</TableHead>
+                <TableHead>Tenant / Caretaker</TableHead>
                 <TableHead>Plot</TableHead>
                 <TableHead>Fee</TableHead>
                 <TableHead>Status</TableHead>
@@ -170,67 +227,73 @@ export function Tenants() {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              {filteredTenants.map((tenant) => (
-                <TableRow key={tenant.id}>
+              {filteredRows.map((row) => (
+                <TableRow key={row.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{tenant.name}</div>
+                      <div
+                        className={`font-medium ${
+                          row.type === "caretaker" ? "text-yellow-600" : ""
+                        }`}
+                      >
+                        {row.name}
+                        {row.type === "caretaker" && " (Caretaker)"}
+                      </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {tenant.phone}
+                        {row.phone}
                       </div>
                     </div>
                   </TableCell>
+
                   <TableCell>
                     <div>
-                      <div className="font-medium">{tenant.plotName}</div>
-                      <div className="text-sm text-muted-foreground">{tenant.plotLocation}</div>
+                      <div className="font-medium">{row.plotName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {row.plotLocation}
+                      </div>
                     </div>
                   </TableCell>
+
                   <TableCell>
-                    <Badge variant="outline">KES {tenant.fee}</Badge>
+                    <Badge variant="outline">KES 0</Badge>
                   </TableCell>
+
                   <TableCell>
-                    <StatusBadge status={tenant.status} />
+                    <StatusBadge status={row.status} />
                   </TableCell>
+
                   <TableCell>
-                    {tenant.lastPayment ? (
-                      <span className="text-sm">{tenant.lastPayment}</span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Never</span>
-                    )}
+                    <span className="text-sm text-muted-foreground">0</span>
                   </TableCell>
+
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleContact(tenant.phone)}
-                      >
-                        <Phone className="h-3 w-3 mr-1" />
-                        Contact
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGenerateReceipt(tenant.id)}
-                      >
-                        Receipt
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleContact(row.phone)}
+                    >
+                      <Phone className="h-3 w-3 mr-2" />
+                      Contact
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Printer className="h-3 w-3 mr-2" />
+                      Receipt
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
 
-          {filteredTenants.length === 0 && (
+          {!loading && filteredRows.length === 0 && (
             <div className="text-center py-12">
               <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No tenants found</h3>
+              <h3 className="text-lg font-medium">No results found</h3>
               <p className="text-muted-foreground">
-                {searchTerm ? "Try adjusting your search terms" : "No tenants have been added yet"}
+                Try adjusting your search terms
               </p>
             </div>
           )}
