@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Printer, FileText, Filter } from "lucide-react";
+import { Download, Printer, FileText, Filter, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,7 @@ const mockReceipts = [
     type: "individual" as const,
   },
   {
-    id: "RCP-002", 
+    id: "RCP-002",
     plotName: "Plot B",
     tenantName: null,
     amount: 2500,
@@ -49,7 +49,7 @@ const mockReceipts = [
     tenantName: "Jane Smith",
     amount: 250,
     month: "August",
-    year: "2025", 
+    year: "2025",
     generatedAt: "2025-08-30",
     type: "individual" as const,
   },
@@ -59,18 +59,33 @@ export function Receipts() {
   const [selectedMonth, setSelectedMonth] = useState("september");
   const [selectedYear, setSelectedYear] = useState("2025");
   const [selectedPlot, setSelectedPlot] = useState("all");
+  const [activeSection, setActiveSection] = useState<"receipts" | "generate">(
+    "receipts"
+  );
 
   const months = [
-    "january", "february", "march", "april", "may", "june",
-    "july", "august", "september", "october", "november", "december"
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
   ];
 
   const years = ["2023", "2024", "2025"];
 
-  const filteredReceipts = mockReceipts.filter(receipt => {
-    const monthMatch = selectedMonth === "all" || receipt.month.toLowerCase() === selectedMonth;
+  const filteredReceipts = mockReceipts.filter((receipt) => {
+    const monthMatch =
+      selectedMonth === "all" || receipt.month.toLowerCase() === selectedMonth;
     const yearMatch = selectedYear === "all" || receipt.year === selectedYear;
-    const plotMatch = selectedPlot === "all" || receipt.plotName === selectedPlot;
+    const plotMatch =
+      selectedPlot === "all" || receipt.plotName === selectedPlot;
     return monthMatch && yearMatch && plotMatch;
   });
 
@@ -103,7 +118,7 @@ export function Receipts() {
         </p>
       </div>
 
-      {/* Filters */}
+      {/* Filters — UNTOUCHED */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -121,7 +136,7 @@ export function Receipts() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Months</SelectItem>
-                  {months.map(month => (
+                  {months.map((month) => (
                     <SelectItem key={month} value={month}>
                       {month.charAt(0).toUpperCase() + month.slice(1)}
                     </SelectItem>
@@ -129,7 +144,6 @@ export function Receipts() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label>Year</Label>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -138,7 +152,7 @@ export function Receipts() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Years</SelectItem>
-                  {years.map(year => (
+                  {years.map((year) => (
                     <SelectItem key={year} value={year}>
                       {year}
                     </SelectItem>
@@ -146,7 +160,6 @@ export function Receipts() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label>Plot</Label>
               <Select value={selectedPlot} onValueChange={setSelectedPlot}>
@@ -155,7 +168,7 @@ export function Receipts() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Plots</SelectItem>
-                  {mockPlots.map(plot => (
+                  {mockPlots.map((plot) => (
                     <SelectItem key={plot.id} value={plot.name}>
                       {plot.name}
                     </SelectItem>
@@ -163,11 +176,14 @@ export function Receipts() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label className="opacity-0">Actions</Label>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSelectedMonth("all")}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedMonth("all")}
+                >
                   Clear Filters
                 </Button>
               </div>
@@ -176,149 +192,147 @@ export function Receipts() {
         </CardContent>
       </Card>
 
-      {/* Generation Actions */}
+      {/* Generate New Receipts (collapsed by default) */}
       <Card>
-        <CardHeader>
+        <CardHeader
+          className="cursor-pointer p-4 flex flex-row items-center gap-2"
+          onClick={() => setActiveSection("generate")}
+        >
           <CardTitle>Generate New Receipts</CardTitle>
+          {activeSection !== "generate" ? <Expand /> : ""}
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button 
-              onClick={() => handleGeneratePDF("individual")}
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <FileText className="h-6 w-6" />
-              <div className="text-center">
-                <div className="font-medium">Individual Receipt</div>
-                <div className="text-xs opacity-80">For single tenant</div>
-              </div>
-            </Button>
 
-            <Button 
-              onClick={() => handleGeneratePDF("plot")}
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <FileText className="h-6 w-6" />
-              <div className="text-center">
-                <div className="font-medium">Plot Receipt</div>
-                <div className="text-xs opacity-80">For entire plot</div>
-              </div>
-            </Button>
+        {activeSection === "generate" ? (
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                onClick={() => handleGeneratePDF("plot")}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <FileText className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium">Plot Receipt</div>
+                  <div className="text-xs opacity-80">For entire plot</div>
+                </div>
+              </Button>
 
-            <Button 
-              onClick={() => handleGeneratePDF("full")}
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <FileText className="h-6 w-6" />
-              <div className="text-center">
-                <div className="font-medium">Full Report</div>
-                <div className="text-xs opacity-80">All plots summary</div>
-              </div>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Export Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Export Data</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button variant="outline" onClick={handleDownloadCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Download CSV
-            </Button>
-            <Button variant="outline" onClick={handleDownloadReport}>
-              <Download className="h-4 w-4 mr-2" />
-              Download Full Report
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Receipts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Receipts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Receipt ID</TableHead>
-                <TableHead>Plot</TableHead>
-                <TableHead>Tenant</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Period</TableHead>
-                <TableHead>Generated</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredReceipts.map((receipt) => (
-                <TableRow key={receipt.id}>
-                  <TableCell>
-                    <div className="font-mono text-sm">{receipt.id}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{receipt.plotName}</div>
-                  </TableCell>
-                  <TableCell>
-                    {receipt.tenantName ? (
-                      <div>{receipt.tenantName}</div>
-                    ) : (
-                      <Badge variant="secondary" className="bg-teal-100 text-teal-800">
-                        Lumpsum
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">KES {receipt.amount.toLocaleString()}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{receipt.month} {receipt.year}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-muted-foreground">{receipt.generatedAt}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handlePrintReceipt(receipt.id)}
-                      >
-                        <Printer className="h-3 w-3 mr-1" />
-                        Print
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        Download
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {filteredReceipts.length === 0 && (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No receipts found</h3>
-              <p className="text-muted-foreground">
-                {selectedMonth !== "all" || selectedYear !== "all" || selectedPlot !== "all" 
-                  ? "Try adjusting your filters" 
-                  : "No receipts have been generated yet"}
-              </p>
+              <Button
+                onClick={() => handleGeneratePDF("full")}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <FileText className="h-6 w-6" />
+                <div className="text-center">
+                  <div className="font-medium">Full Report</div>
+                  <div className="text-xs opacity-80">
+                    Download as PDF or EXCEL
+                  </div>
+                </div>
+              </Button>
             </div>
-          )}
-        </CardContent>
+          </CardContent>
+        ) : (
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Generate new receipts and downloadable reports.
+            </p>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Receipts (OPEN by default) */}
+      <Card>
+        <CardHeader
+          className="cursor-pointer p-4 flex flex-row items-center gap-2"
+          onClick={() => setActiveSection("receipts")}
+        >
+          <CardTitle>Receipts</CardTitle>
+          {activeSection !== "receipts" ? <Expand /> : ""}
+        </CardHeader>
+
+        {activeSection === "receipts" ? (
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Receipt ID</TableHead>
+                  <TableHead>Plot</TableHead>
+                  <TableHead>Tenant</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Generated</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredReceipts.map((receipt) => (
+                  <TableRow key={receipt.id}>
+                    <TableCell>
+                      <div className="font-mono text-sm">{receipt.id}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{receipt.plotName}</div>
+                    </TableCell>
+                    <TableCell>
+                      {receipt.tenantName ? (
+                        receipt.tenantName
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="bg-teal-100 text-teal-800"
+                        >
+                          Lumpsum
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        KES {receipt.amount.toLocaleString()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {receipt.month} {receipt.year}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {receipt.generatedAt}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePrintReceipt(receipt.id)}
+                        >
+                          <Printer className="h-3 w-3 mr-1" />
+                          Print
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-3 w-3 mr-1" />
+                          Download
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {filteredReceipts.length === 0 && (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No receipts found</h3>
+                <p className="text-muted-foreground">
+                  No receipts have been generated yet
+                </p>
+              </div>
+            )}
+          </CardContent>
+        ) : (
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              View, print, and download generated receipts.
+            </p>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
