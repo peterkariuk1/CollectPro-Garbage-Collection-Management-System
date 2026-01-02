@@ -26,21 +26,24 @@ interface Contact {
   plotName: string;
 }
 
-const formatKenyanMobile = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 12);
+const formatKenyanMobile = (local: string) => {
+  const digits = local.replace(/\D/g, "");
 
-  if (digits.startsWith("254") && digits.length === 12) {
-    return { value: digits, isValid: true };
+  if (
+    (digits.startsWith("07") || digits.startsWith("01")) &&
+    digits.length === 10
+  ) {
+    return {
+      value: `254${digits.slice(1)}`, // API format
+      isValid: true,
+    };
   }
 
-  if (digits.startsWith("07") || digits.startsWith("01")) {
-    if (digits.length < 10) return { value: digits, isValid: true };
-    return { value: `254${digits.slice(1)}`, isValid: true };
+  if (digits.length === 0) {
+    return { value: "", isValid: true };
   }
 
-  if (digits.length === 0) return { value: "", isValid: true };
-
-  return { value: digits, isValid: false };
+  return { value: "", isValid: false };
 };
 
 export function StkPushModal({ open, onClose }: Props) {
@@ -128,17 +131,53 @@ export function StkPushModal({ open, onClose }: Props) {
 
   /* ---------------- PHONE CHANGE ---------------- */
   const handlePhoneChange = (value: string) => {
-    setRawPhone(value);
-    const { value: formatted, isValid } = formatKenyanMobile(value);
-    setPhone(formatted);
+    // force UI to max 10 digits
+    const cleanedLocal = cleanToLocalKenyan(value);
+
+    setRawPhone(cleanedLocal);
+
+    const { value: formatted, isValid } = formatKenyanMobile(cleanedLocal);
+    setPhone(formatted); // always 254XXXXXXXXX
     setPhoneValid(isValid);
+
+    if (cleanedLocal.length >= 2 && !isValid) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Phone must start with 07 or 01 and have 10 digits",
+        className:
+          "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
+      });
+    }
   };
 
   /* ---------------- SELECT CONTACT ---------------- */
   const selectContact = (c: Contact) => {
     setSelectedContact(c);
-    handlePhoneChange(c.phone);
+
+    // clean DB value before pushing to input
+    const localPhone = cleanToLocalKenyan(c.phone);
+    handlePhoneChange(localPhone);
+
     if (c.amount) setAmount(String(c.amount));
+  };
+
+  const cleanToLocalKenyan = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+
+    // DB format: 2547XXXXXXXX → UI: 07XXXXXXXX
+    if (digits.startsWith("254") && digits.length === 12) {
+      return `0${digits.slice(3)}`; // 07XXXXXXXX
+    }
+
+    // Already local
+    if (
+      (digits.startsWith("07") || digits.startsWith("01")) &&
+      digits.length <= 10
+    ) {
+      return digits.slice(0, 10);
+    }
+
+    return digits.slice(0, 10);
   };
 
   /* ---------------- SUBMIT STK ---------------- */
