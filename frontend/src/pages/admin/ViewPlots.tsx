@@ -35,6 +35,7 @@ import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import { PlotTypeBadge } from "@/components/plot-type-badge";
 import { getAuth } from "firebase/auth";
+import Loader from "@/components/system/Loader";
 
 export function ViewPlots() {
   const navigate = useNavigate();
@@ -179,9 +180,7 @@ export function ViewPlots() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <CircularProgress />
-        </div>
+        <Loader />
       ) : filteredPlots.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPlots.map((plot) => (

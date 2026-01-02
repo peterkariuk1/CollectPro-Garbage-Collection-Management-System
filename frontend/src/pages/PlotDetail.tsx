@@ -24,6 +24,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import loaderSVG from "../assets/loader.svg";
 
 export default function PlotDetail() {
   const { plotId } = useParams();
@@ -60,7 +61,12 @@ export default function PlotDetail() {
   }, [plotId]);
 
   if (loading) {
-    return <div className="container mx-auto px-4 py-6">Loading...</div>;
+    return (
+      <>...</>
+      // <div className="flex items-center justify-center">
+      //   <img className="w-[100px]" src={loaderSVG} alt="loading" />
+      // </div>
+    );
   }
 
   if (!plot) {
@@ -93,30 +99,40 @@ export default function PlotDetail() {
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={() => navigate(backTo)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        {/* Back button */}
+        <div>
+          <Button variant="outline" onClick={() => navigate(backTo)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        </div>
+
+        {/* Plot info */}
         <div className="flex-1">
-          <h1 className="text-3xl font-bold">{plot.name}</h1>
-          <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">{plot.name}</h1>
+
+          <div className="flex flex-col gap-2 mt-2 text-muted-foreground md:flex-row md:items-center md:gap-4">
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               {plot.location}
             </div>
+
             <div className="flex items-center gap-1">
               <Phone className="h-4 w-4" />
-              {plot.caretakerName || "N/A"} - {plot.caretakerPhone || "N/A"}
+              {plot.caretakerName || "N/A"} – {plot.caretakerPhone || "N/A"}
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="h-4 w-4 mr-2" />
             Generate Receipt
           </Button>
-          <Button variant="outline">
+
+          <Button variant="outline" className="w-full sm:w-auto">
             <FileText className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
