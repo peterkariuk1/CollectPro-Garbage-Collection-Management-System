@@ -66,9 +66,11 @@ export function Header() {
             {/* Logo */}
             <div className="flex items-center">
               <img className="w-[60px]" src={logoImage} alt="logo" />
-              <span className="font-semibold text-lg ml-2">
-                Jowabu General Merchants
-              </span>
+              <div className="relative overflow-hidden max-w-[220px] md:max-w-none">
+                <span className="inline-block font-semibold text-lg ml-2 animate-marquee md:animate-none">
+                  Jowabu General Merchants
+                </span>
+              </div>
             </div>
 
             {/* Right Actions */}
