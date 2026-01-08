@@ -29,7 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {StkPushModal} from '../../components/mpesa/StkPushModal'
+import { StkPushModal } from "../../components/mpesa/StkPushModal";
 
 type PaymentStatus = "pending" | "reconciled";
 type PaymentSource = "C2B" | "STK" | "PULL" | "CASH";
@@ -40,6 +40,7 @@ interface PaymentRow {
   phone: string;
   name: string;
   time: string;
+  month: string;
   source: PaymentSource;
   status: PaymentStatus;
 }
@@ -52,6 +53,7 @@ const MOCK_PAYMENTS: PaymentRow[] = [
     phone: "254712345678",
     name: "John Mwangi",
     time: "2025-01-12 09:21",
+    month: "January",
     source: "C2B",
     status: "pending",
   },
@@ -61,6 +63,7 @@ const MOCK_PAYMENTS: PaymentRow[] = [
     phone: "254798765432",
     name: "Caretaker - Peter",
     time: "2025-01-11 18:40",
+    month: "January",
     source: "STK",
     status: "reconciled",
   },
@@ -70,6 +73,7 @@ const MOCK_PAYMENTS: PaymentRow[] = [
     phone: "254701112233",
     name: "Mary Wanjiku",
     time: "2025-01-10 14:05",
+    month: "January",
     source: "PULL",
     status: "reconciled",
   },
@@ -150,6 +154,7 @@ export function RecentPayments() {
                 <TableHead>Amount</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Time</TableHead>
+                <TableHead>Month Paid</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>

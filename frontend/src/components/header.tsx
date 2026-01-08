@@ -86,13 +86,23 @@ export function Header() {
 
                 <DropdownMenuContent align="end" className="w-48">
                   {!isDashboard && (
-                    <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        navigate("/dashboard");
+                      }}
+                    >
                       Dashboard
                     </DropdownMenuItem>
                   )}
 
                   {!isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        navigate("/admin");
+                      }}
+                    >
                       Admin Panel
                     </DropdownMenuItem>
                   )}
