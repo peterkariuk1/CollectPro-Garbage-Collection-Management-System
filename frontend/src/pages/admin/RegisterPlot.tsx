@@ -24,6 +24,7 @@ interface Tenant {
   id: string;
   name: string;
   phone: string;
+  amount: string;
 }
 
 export function RegisterPlot() {
@@ -42,7 +43,6 @@ export function RegisterPlot() {
     units: "",
     lumpsumExpected: "",
     mpesaNumber: "",
-    feePerTenant: "250",
   });
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -75,7 +75,7 @@ export function RegisterPlot() {
   const addTenant = () => {
     setTenants([
       ...tenants,
-      { id: Date.now().toString(), name: "", phone: "" },
+      { id: Date.now().toString(), name: "", phone: "", amount: "250" },
     ]);
   };
 
@@ -113,7 +113,15 @@ export function RegisterPlot() {
         "Caretaker phone number must be complete (254XXXXXXXXX)",
         "warning"
       );
+
       return;
+    }
+    if (plotType === "individual") {
+      const missingAmount = tenants.some((t) => !t.amount);
+      if (missingAmount) {
+        showSnackbar("Each tenant must have a payment amount", "warning");
+        return;
+      }
     }
 
     if (
@@ -187,7 +195,6 @@ export function RegisterPlot() {
         units: "",
         lumpsumExpected: "",
         mpesaNumber: "",
-        feePerTenant: "250",
       });
       setTenants([]);
     } catch (err: any) {
@@ -491,24 +498,6 @@ export function RegisterPlot() {
 
             {plotType === "individual" && (
               <div className="space-y-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label htmlFor="fee-per-tenant">Fee per Tenant (KES) *</Label>
-                  <Select
-                    value={formData.feePerTenant}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, feePerTenant: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="200">KES 200</SelectItem>
-                      <SelectItem value="250">KES 250</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <Separator />
 
                 <div className="space-y-4">
@@ -558,15 +547,34 @@ export function RegisterPlot() {
                           </span>
                         )}
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTenant(tenant.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={tenant.amount}
+                          onValueChange={(value) =>
+                            updateTenant(tenant.id, "amount", value)
+                          }
+                        >
+                          <SelectTrigger className="w-[90px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="150">150</SelectItem>
+                            <SelectItem value="200">200</SelectItem>
+                            <SelectItem value="250">250</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeTenant(tenant.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
 

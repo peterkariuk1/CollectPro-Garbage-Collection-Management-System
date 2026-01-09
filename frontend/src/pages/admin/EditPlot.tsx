@@ -31,11 +31,13 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import Loader from "@/components/system/Loader";
 
 interface Tenant {
   id: string;
   name: string;
   phone: string;
+  amount: string;
 }
 
 export function EditPlot() {
@@ -54,7 +56,6 @@ export function EditPlot() {
     units: "",
     lumpsumExpected: "",
     mpesaNumber: "",
-    feePerTenant: "250",
   });
 
   const [loading, setLoading] = useState(true);
@@ -143,7 +144,6 @@ export function EditPlot() {
           units: plot.units?.toString() || "",
           lumpsumExpected: plot.lumpsumExpected?.toString() || "",
           mpesaNumber: plot.mpesaNumber || "",
-          feePerTenant: plot.feePerTenant?.toString() || "250",
         });
 
         setTenants(plot.tenants || []);
@@ -164,6 +164,7 @@ export function EditPlot() {
       id: Date.now().toString(),
       name: "",
       phone: "",
+      amount: "200",
     };
     setTenants([...tenants, newTenant]);
   };
@@ -226,11 +227,7 @@ export function EditPlot() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <CircularProgress />
-      </div>
-    );
+    return <Loader />;
   }
 
   if (notFound) {
@@ -279,6 +276,17 @@ export function EditPlot() {
 
     return true;
   };
+
+  if (plotType === "individual") {
+    const invalidAmount = tenants.some(
+      (t) => !["100", "150", "200", "250"].includes(String(t.amount))
+    );
+
+    if (invalidAmount) {
+      showSnackbar("Each tenant must have a valid amount", "warning");
+      return false;
+    }
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -446,26 +454,6 @@ export function EditPlot() {
 
             {plotType === "individual" && (
               <div className="space-y-4 pt-4 border-t mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fee-per-tenant">Fee per Tenant (KES) *</Label>
-                  <Select
-                    value={formData.feePerTenant}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, feePerTenant: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="200">KES 200</SelectItem>
-                      <SelectItem value="250">KES 250</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <Label>Tenants</Label>
@@ -512,15 +500,34 @@ export function EditPlot() {
                           }}
                         />
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeTenant(tenant.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={tenant.amount}
+                          onValueChange={(value) =>
+                            updateTenant(tenant.id, "amount", value)
+                          }
+                        >
+                          <SelectTrigger className="w-[90px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="100">100</SelectItem>
+                            <SelectItem value="150">150</SelectItem>
+                            <SelectItem value="200">200</SelectItem>
+                            <SelectItem value="250">250</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeTenant(tenant.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
 

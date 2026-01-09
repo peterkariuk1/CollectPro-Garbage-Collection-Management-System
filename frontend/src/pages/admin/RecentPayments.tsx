@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { printReceipt } from "@/components/system/PrintReceipt";
 
 import {
   Table,
@@ -166,7 +165,7 @@ export function RecentPayments() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setStkOpen(true)}>
             <Smartphone className="h-4 w-4 mr-2" />
-            STK Push
+            Prompt
           </Button>
 
           <StkPushModal open={stkOpen} onClose={() => setStkOpen(false)} />
