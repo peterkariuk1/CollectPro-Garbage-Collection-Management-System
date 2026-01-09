@@ -151,7 +151,7 @@ export function RecentPayments() {
   .small { font-size: 10px; }
 
   img.logo {
-    max-width: 40mm;
+    max-width: 15mm;
     margin-bottom: 0px;
   }
 
