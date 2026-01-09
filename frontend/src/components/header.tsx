@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Frown, LogOut } from "lucide-react";
 
 // Firebase
@@ -88,24 +88,14 @@ export function Header() {
 
                 <DropdownMenuContent align="end" className="w-48">
                   {!isDashboard && (
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        navigate("/dashboard");
-                      }}
-                    >
-                      Dashboard
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard">Dashboard</Link>
                     </DropdownMenuItem>
                   )}
 
                   {!isAdmin && (
-                    <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        navigate("/admin");
-                      }}
-                    >
-                      Admin Panel
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Admin Panel</Link>
                     </DropdownMenuItem>
                   )}
 

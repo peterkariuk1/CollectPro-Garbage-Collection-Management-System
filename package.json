@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@point-of-sale/receipt-printer-encoder": "^3.0.3"
+  }
+}

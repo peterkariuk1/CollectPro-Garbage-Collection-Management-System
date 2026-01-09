@@ -256,7 +256,7 @@ export function StkPushModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg w-full">
+      <DialogContent className="max-w-lg w-full sm:top-1/2 top-4 translate-y-0 sm:-translate-y-1/2">
         <DialogHeader>
           <DialogTitle>Send STK Push</DialogTitle>
         </DialogHeader>

@@ -36,6 +36,7 @@ const adminNavItems = [
   { title: "Register Plot", url: "/admin/plots/new", icon: HousePlus },
   { title: "Tenants", url: "/admin/tenants", icon: Users },
   { title: "Receipts & Exports", url: "/admin/receipts", icon: FileText },
+  { title: "User Management", url: "/not-found", icon: Users },
 ];
 
 export function AdminLayout() {

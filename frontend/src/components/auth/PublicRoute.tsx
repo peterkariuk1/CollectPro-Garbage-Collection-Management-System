@@ -1,16 +1,20 @@
 import { Navigate } from "react-router-dom"
 import { onAuthStateChanged } from "firebase/auth"
 import { auth } from "../../../firebase.ts"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export function PublicRoute({ children }) {
   const [checking, setChecking] = useState(true)
   const [user, setUser] = useState(null)
+  const hasResolved = useRef(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser)
-      setChecking(false)
+      if (!hasResolved.current) {
+        hasResolved.current = true
+        setUser(firebaseUser)
+        setChecking(false)
+      }
     })
 
     return () => unsub()
@@ -19,7 +23,6 @@ export function PublicRoute({ children }) {
   if (checking) return null
 
   if (user) {
-    // 🔥 replace: true prevents back navigation
     return <Navigate to="/dashboard" replace />
   }
 
