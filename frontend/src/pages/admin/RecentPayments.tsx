@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import jobawuLogo from '../../assets/joblogo.png';
+import jobawuLogo from "../../assets/joblogo.png";
 import {
   Search,
   Plus,
@@ -134,13 +134,14 @@ export function RecentPayments() {
     margin: 0;
     padding: 6px;
     font-family: monospace;
-    font-size: 11px;
+    font-size: 10px;
     color: #000;
+    font-stretch: condensed;
   }
 
   .center { text-align: center; }
   .bold { font-weight: bold; }
-  .line { border-top: 1px dashed #000; margin: 6px 0; }
+  .line { border-top: 0px dashed #000; margin: 2px 0; }
 
   .row {
     display: flex;
@@ -151,12 +152,16 @@ export function RecentPayments() {
 
   img.logo {
     max-width: 48mm;
-    margin-bottom: 4px;
+    margin-bottom: 0px;
   }
 
   img.qr {
     width: 32mm;
     height: 32mm;
+  }
+  p {
+    text-align: center;
+    margin-top:4px;
   }
 </style>
 </head>
@@ -170,7 +175,7 @@ export function RecentPayments() {
 
   <div class="center bold">PAYMENT RECEIPT</div>
 
-  <div class="line"></div>
+<p> xxxxxxxxxxxxxxxxx </p>
 
   <div class="small">
     <div>Receipt No:</div>
@@ -180,14 +185,14 @@ export function RecentPayments() {
     <div>${time}</div>
   </div>
 
-  <div class="line"></div>
+<p> xxxxxxxxxxxxxxxxx </p>
 
   <div>
     <div class="bold">Plot</div>
     <div>${plotName || "—"}</div>
   </div>
 
-  <div class="line"></div>
+<p> xxxxxxxxxxxxxxxxx </p>
 
   <div>
     <div class="bold">Customer</div>
@@ -195,7 +200,7 @@ export function RecentPayments() {
     <div class="small">${phone}</div>
   </div>
 
-  <div class="line"></div>
+<p> xxxxxxxxxxxxxxxxx </p>
 
   <div>
     <div class="row bold">
@@ -215,7 +220,7 @@ export function RecentPayments() {
     }
   </div>
 
-  <div class="line"></div>
+<p> xxxxxxxxxxxxxxxxx </p>
 
   <div>
     <div class="bold">Months Paid</div>
@@ -235,7 +240,7 @@ export function RecentPayments() {
     }
   </div>
 
-  <div class="line"></div>
+<p> xxxxxxxxxxxxxxxxx </p>
 
   <div>
     <div class="bold">Status</div>
@@ -253,7 +258,7 @@ export function RecentPayments() {
     }
   </div>
 
-  <div class="line"></div>
+<p> __________________________ </p>
 
   <!-- QR CODE -->
   <div class="center">
@@ -261,20 +266,20 @@ export function RecentPayments() {
     <div class="small">Verify Payment</div>
   </div>
 
-  <div class="line"></div>
+<p> __________________________ </p>
 
   <div class="center small">
     Served by: <span class="bold">Grace</span>
   </div>
 
-  <div class="line"></div>
+<p> __________________________ </p>
 
   <!-- CONTACT -->
   <div class="center small">
     <div class="bold">CONTACT</div>
-    P.O BOX 54444,444<br/>
+    P.O BOX 57655 - 00200<br/>
     Nairobi<br/>
-    TEL: 0728 444 555
+    TEL: 0728 290 280
   </div>
 
   <div class="line"></div>
