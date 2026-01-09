@@ -175,37 +175,32 @@ export function RecentPayments() {
 
   <div class="center bold">PAYMENT RECEIPT</div>
 
-<p> xxxxxxxxxxxxxxxxx </p>
+<p> _____________________________ </p>
 
   <div class="small">
     <div>Receipt No:</div>
     <div class="bold">${id}</div>
 
     <div style="margin-top:4px;">Date:</div>
-    <div>${time}</div>
   </div>
 
-<p> xxxxxxxxxxxxxxxxx </p>
+<p> xxxxxxxxxxxxxxxxxxxxx </p>
 
   <div>
-    <div class="bold">Plot</div>
     <div>${plotName || "—"}</div>
   </div>
 
-<p> xxxxxxxxxxxxxxxxx </p>
-
+<p> _____________________________ </p>
   <div>
     <div class="bold">Customer</div>
     <div>${name}</div>
     <div class="small">${phone}</div>
   </div>
 
-<p> xxxxxxxxxxxxxxxxx </p>
-
+<p> _____________________________ </p>
   <div>
     <div class="row bold">
-      <span>TOTAL</span>
-      <span>KES ${total.toLocaleString()}</span>
+      <p>TOTAL PAID:  KSH.${total.toLocaleString()}.00</p>
     </div>
 
     ${
@@ -220,27 +215,12 @@ export function RecentPayments() {
     }
   </div>
 
-<p> xxxxxxxxxxxxxxxxx </p>
+<p> _____________________________ </p>
 
   <div>
-    <div class="bold">Months Paid</div>
-    ${
-      monthPaid.length
-        ? monthPaid
-            .map(
-              (m) => `
-              <div class="row">
-                <span>${m.month}</span>
-                <span>KES ${m.amount}</span>
-              </div>
-            `
-            )
-            .join("")
-        : `<div class="small">—</div>`
-    }
-  </div>
+    
 
-<p> xxxxxxxxxxxxxxxxx </p>
+<p> _____________________________ </p>
 
   <div>
     <div class="bold">Status</div>
@@ -258,7 +238,7 @@ export function RecentPayments() {
     }
   </div>
 
-<p> __________________________ </p>
+<p> _____________________________ </p>
 
   <!-- QR CODE -->
   <div class="center">
@@ -272,8 +252,6 @@ export function RecentPayments() {
     Served by: <span class="bold">Grace</span>
   </div>
 
-<p> __________________________ </p>
-
   <!-- CONTACT -->
   <div class="center small">
     <div class="bold">CONTACT</div>
@@ -282,10 +260,9 @@ export function RecentPayments() {
     TEL: 0728 290 280
   </div>
 
-  <div class="line"></div>
-
+<p> _____________________________ </p>
   <div class="center bold">
-    Thank you for business
+    Thank you!
   </div>
 
 </body>
