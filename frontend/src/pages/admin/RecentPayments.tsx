@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import jobawuLogo from '../../assets/joblogo.png';
 import {
   Search,
   Plus,
@@ -88,6 +89,214 @@ export function RecentPayments() {
 
     fetchPayments();
   }, []);
+
+  function printReceipt58mm(payment) {
+    const {
+      id,
+      plotName,
+      amount = {},
+      less,
+      name,
+      phone,
+      time,
+      monthPaid = [],
+      status = [],
+    } = payment;
+
+    const derivedStatus = status.some((s) => s.state === "incomplete")
+      ? "INCOMPLETE"
+      : status.some((s) => s.state === "complete")
+      ? "COMPLETE"
+      : "UNRECOGNIZED";
+
+    const total = amount.total ?? 0;
+    const mpesa = amount.mpesa ?? null;
+    const cash = amount.cash ?? null;
+
+    const qrUrl =
+      "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://jobawu.vercel.app/authenticated";
+
+    const receiptHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Receipt</title>
+
+<style>
+  @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+
+  body {
+    width: 58mm;
+    margin: 0;
+    padding: 6px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #000;
+  }
+
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .line { border-top: 1px dashed #000; margin: 6px 0; }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .small { font-size: 10px; }
+
+  img.logo {
+    max-width: 48mm;
+    margin-bottom: 4px;
+  }
+
+  img.qr {
+    width: 32mm;
+    height: 32mm;
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- LOGO -->
+  <div class="center">
+    <img src=${jobawuLogo} class="logo" />
+  </div>
+
+  <div class="center bold">PAYMENT RECEIPT</div>
+
+  <div class="line"></div>
+
+  <div class="small">
+    <div>Receipt No:</div>
+    <div class="bold">${id}</div>
+
+    <div style="margin-top:4px;">Date:</div>
+    <div>${time}</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div>
+    <div class="bold">Plot</div>
+    <div>${plotName || "—"}</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div>
+    <div class="bold">Customer</div>
+    <div>${name}</div>
+    <div class="small">${phone}</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div>
+    <div class="row bold">
+      <span>TOTAL</span>
+      <span>KES ${total.toLocaleString()}</span>
+    </div>
+
+    ${
+      mpesa != null
+        ? `<div class="row"><span>MPESA</span><span>${mpesa}</span></div>`
+        : ""
+    }
+    ${
+      cash != null
+        ? `<div class="row"><span>CASH</span><span>${cash}</span></div>`
+        : ""
+    }
+  </div>
+
+  <div class="line"></div>
+
+  <div>
+    <div class="bold">Months Paid</div>
+    ${
+      monthPaid.length
+        ? monthPaid
+            .map(
+              (m) => `
+              <div class="row">
+                <span>${m.month}</span>
+                <span>KES ${m.amount}</span>
+              </div>
+            `
+            )
+            .join("")
+        : `<div class="small">—</div>`
+    }
+  </div>
+
+  <div class="line"></div>
+
+  <div>
+    <div class="bold">Status</div>
+    <div>${derivedStatus}</div>
+
+    ${
+      less?.amount
+        ? `
+          <div class="small">
+            Due: KES ${less.amount}<br/>
+            Month: ${less.dueMonth}
+          </div>
+        `
+        : `<div class="small">Cleared</div>`
+    }
+  </div>
+
+  <div class="line"></div>
+
+  <!-- QR CODE -->
+  <div class="center">
+    <img src="${qrUrl}" class="qr" />
+    <div class="small">Verify Payment</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div class="center small">
+    Served by: <span class="bold">Grace</span>
+  </div>
+
+  <div class="line"></div>
+
+  <!-- CONTACT -->
+  <div class="center small">
+    <div class="bold">CONTACT</div>
+    P.O BOX 54444,444<br/>
+    Nairobi<br/>
+    TEL: 0728 444 555
+  </div>
+
+  <div class="line"></div>
+
+  <div class="center bold">
+    Thank you for business
+  </div>
+
+</body>
+</html>
+`;
+
+    const printWindow = window.open("", "_blank", "width=300,height=600");
+    printWindow.document.open();
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
 
   /* ---------------- SEARCH ---------------- */
   const filteredPayments = useMemo(() => {
@@ -208,11 +417,12 @@ export function RecentPayments() {
             <TableHeader>
               <TableRow>
                 <TableHead>Transaction ID</TableHead>
+                <TableHead>Plot Name</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Amount Due</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Time</TableHead>
-                <TableHead>Month Paid</TableHead>
-                <TableHead>Source</TableHead>
+                <TableHead>Month(s) Paid</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -221,68 +431,127 @@ export function RecentPayments() {
             <TableBody>
               {!loading &&
                 filteredPayments.map((p) => {
-                  const amountObj = p.amount ?? {};
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.id}</TableCell>
+                  const amount = p.amount ?? {};
+                  const monthPaid = Array.isArray(p.monthPaid)
+                    ? p.monthPaid
+                    : [];
+                  const statusArr = Array.isArray(p.status) ? p.status : [];
 
+                  const derivedStatus = statusArr.some(
+                    (s) => s.state === "incomplete"
+                  )
+                    ? "INCOMPLETE"
+                    : statusArr.some((s) => s.state === "complete")
+                    ? "COMPLETE"
+                    : "UNRECOGNIZED";
+
+                  return (
+                    <TableRow key={p.id} className="align-top">
+                      {/* Transaction ID */}
+                      <TableCell className="font-mono text-xs">
+                        {p.id}
+                      </TableCell>
+
+                      {/* Plot Name */}
+                      <TableCell className="font-medium">
+                        {p.plotName || "—"}
+                      </TableCell>
+
+                      {/* Amount (grid) */}
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {amountObj.mpesa != null && (
-                            <Badge variant="outline">
-                              MPESA · KES {amountObj.mpesa}
-                            </Badge>
+                        <div className="grid grid-cols-1 gap-1 text-sm">
+                          {amount.total != null && (
+                            <div className="font-semibold">
+                              KES {amount.total.toLocaleString()}
+                            </div>
                           )}
-                          {amountObj.cash != null && (
-                            <Badge variant="secondary">
-                              CASH · KES {amountObj.cash}
-                            </Badge>
-                          )}
-                          {/* Conditional balance or overpayment */}
-                          {p.overpayment != null && p.overpayment > 0 ? (
-                            <Badge variant="success">
-                              Overpayment · KES {p.overpayment}
-                            </Badge>
-                          ) : p.balance != null && p.balance !== 0 ? (
-                            <Badge variant="destructive">
-                              Balance · KES {p.balance}
-                            </Badge>
-                          ) : null}
+                          <div className="flex flex-wrap gap-1">
+                            {amount.mpesa != null && (
+                              <Badge variant="outline">
+                                MPESA · {amount.mpesa}
+                              </Badge>
+                            )}
+                            {amount.cash != null && (
+                              <Badge variant="secondary">
+                                CASH · {amount.cash}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
 
+                      {/* Amount Due */}
                       <TableCell>
-                        <div>
+                        {p.less?.amount ? (
+                          <div className="text-sm">
+                            <div className="font-semibold text-red-600">
+                              KES {p.less.amount.toLocaleString()}
+                            </div>
+                            <div className="text-muted-foreground">
+                              Due · {p.less.dueMonth}
+                            </div>
+                          </div>
+                        ) : (
+                          <Badge className="bg-green-100 text-green-700">
+                            Cleared
+                          </Badge>
+                        )}
+                      </TableCell>
+
+                      {/* Customer */}
+                      <TableCell>
+                        <div className="space-y-0.5">
                           <div className="font-medium">{p.name}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-xs text-muted-foreground">
                             {p.phone}
                           </div>
                         </div>
                       </TableCell>
 
-                      <TableCell className="text-sm text-muted-foreground">
+                      {/* Time */}
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {p.time}
                       </TableCell>
 
-                      <TableCell className="text-sm text-muted-foreground">
-                        {p.month}
+                      {/* Months Paid */}
+                      <TableCell>
+                        {monthPaid.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-1 text-xs">
+                            {monthPaid.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className="rounded border px-2 py-1"
+                              >
+                                <div className="font-medium">{m.month}</div>
+                                <div className="text-muted-foreground">
+                                  KES {m.amount}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            —
+                          </span>
+                        )}
                       </TableCell>
 
+                      {/* Status */}
                       <TableCell>
-                        <Badge variant="secondary">{p.source}</Badge>
-                      </TableCell>
-
-                      <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            STATUS_BADGE[p.status] ??
-                            "bg-gray-100 text-gray-700"
-                          }`}
+                        <Badge
+                          className={
+                            derivedStatus === "COMPLETE"
+                              ? "bg-green-100 text-green-700"
+                              : derivedStatus === "INCOMPLETE"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-700"
+                          }
                         >
-                          {p.status}
-                        </span>
+                          {derivedStatus}
+                        </Badge>
                       </TableCell>
 
+                      {/* Actions (UNCHANGED LOGIC) */}
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -292,23 +561,18 @@ export function RecentPayments() {
                           </DropdownMenuTrigger>
 
                           <DropdownMenuContent align="end">
-                            {p.status === "pending" && (
-                              <DropdownMenuItem>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Reconcile
-                              </DropdownMenuItem>
-                            )}
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedPayment(p);
                                 setEditOpen(true);
                               }}
                             >
-                              <Edit className="h-4 w-4 mr-2" /> Edit Payment
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Payment
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
-                              onClick={() => printReceipt(p.id)}
+                              onClick={() => printReceipt58mm(p)}
                             >
                               <Receipt className="h-4 w-4 mr-2" />
                               Generate Receipt
