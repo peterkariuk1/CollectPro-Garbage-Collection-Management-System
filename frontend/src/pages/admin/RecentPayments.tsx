@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import jobawuLogo from "../../assets/joblogo.png";
 import {
   Search,
   Plus,
@@ -150,9 +149,8 @@ export function RecentPayments() {
 
   .small { font-size: 10px; }
 
-  img.logo {
-    max-width: 15mm;
-    margin-bottom: 0px;
+  h2 {
+    text-align: center;
   }
 
   img.qr {
@@ -170,7 +168,7 @@ export function RecentPayments() {
 
   <!-- LOGO -->
   <div class="center">
-    <img src=${jobawuLogo} class="logo" />
+  <h2>JOBAWU GENERAL MERCHANTS</h2>
   </div>
 
   <div class="center bold">PAYMENT RECEIPT</div>
