@@ -75,7 +75,7 @@ export function RegisterPlot() {
   const addTenant = () => {
     setTenants([
       ...tenants,
-      { id: Date.now().toString(), name: "", phone: "", amount: "250" },
+      { id: Date.now().toString(), name: "", phone: "", amount: "200" },
     ]);
   };
 
