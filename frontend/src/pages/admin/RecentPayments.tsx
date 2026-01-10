@@ -108,6 +108,30 @@ export function RecentPayments() {
       ? "COMPLETE"
       : "UNRECOGNIZED";
 
+    const formatMonthLabel = (monthStr) => {
+      if (!monthStr || typeof monthStr !== "string") return "—";
+
+      const [m, y] = monthStr.split("-");
+      const MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      if (!MONTHS.includes(m) || !y) return "—";
+
+      return `${m}-${y}`;
+    };
+
     const total = amount.total ?? 0;
     const mpesa = amount.mpesa ?? null;
     const cash = amount.cash ?? null;
@@ -169,6 +193,12 @@ export function RecentPayments() {
   <!-- LOGO -->
   <div class="center">
   <h2>JOBAWU GENERAL MERCHANTS</h2>
+  <div class="center small">
+    <div class="bold">CONTACT</div>
+    P.O BOX 57655 - 00200<br/>
+    Nairobi<br/>
+    TEL: 0728 290 280
+  </div>
   </div>
 
   <div class="center bold">PAYMENT RECEIPT</div>
@@ -180,6 +210,8 @@ export function RecentPayments() {
     <div class="bold">${id}</div>
 
     <div style="margin-top:4px;">Date:</div>
+    <div>${time}</div>
+
   </div>
 
 <p> xxxxxxxxxxxxxxxxxxxxx </p>
@@ -212,11 +244,23 @@ export function RecentPayments() {
         : ""
     }
   </div>
-
-<p> _____________________________ </p>
-
-  <div>
-    
+   <div>
+    <div class="bold">Months Paid</div>
+    ${
+      monthPaid.length
+        ? monthPaid
+            .map(
+              m => `
+              <div class="row">
+                <span>${formatMonthLabel(m.month)}</span>
+                <span>KES ${m.amount}</span>
+              </div>
+            `
+            )
+            .join("")
+        : `<div class="small">—</div>`
+    }
+  </div>
 
 <p> _____________________________ </p>
 
@@ -229,7 +273,7 @@ export function RecentPayments() {
         ? `
           <div class="small">
             Due: KES ${less.amount}<br/>
-            Month: ${less.dueMonth}
+            Month: ${formatMonthLabel(less.dueMonth)}
           </div>
         `
         : `<div class="small">Cleared</div>`
@@ -248,14 +292,6 @@ export function RecentPayments() {
 
   <div class="center small">
     Served by: <span class="bold">Grace</span>
-  </div>
-
-  <!-- CONTACT -->
-  <div class="center small">
-    <div class="bold">CONTACT</div>
-    P.O BOX 57655 - 00200<br/>
-    Nairobi<br/>
-    TEL: 0728 290 280
   </div>
 
 <p> _____________________________ </p>

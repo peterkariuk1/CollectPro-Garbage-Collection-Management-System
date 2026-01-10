@@ -62,10 +62,9 @@ export default function PlotDetail() {
 
   if (loading) {
     return (
-      <>...</>
-      // <div className="flex items-center justify-center">
-      //   <img className="w-[100px]" src={loaderSVG} alt="loading" />
-      // </div>
+      <div className="flex items-center justify-center">
+        <img className="w-[100px]" src={loaderSVG} alt="loading" />
+      </div>
     );
   }
 
