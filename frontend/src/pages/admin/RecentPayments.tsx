@@ -89,7 +89,7 @@ export function RecentPayments() {
     fetchPayments();
   }, []);
 
-  function printReceipt58mm(payment) {
+  async function printReceipt58mm(payment) {
     const {
       id,
       plotName,
@@ -108,36 +108,42 @@ export function RecentPayments() {
       ? "COMPLETE"
       : "UNRECOGNIZED";
 
+    const MONTHS = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
     const formatMonthLabel = (monthStr) => {
       if (!monthStr || typeof monthStr !== "string") return "—";
-
       const [m, y] = monthStr.split("-");
-      const MONTHS = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-
       if (!MONTHS.includes(m) || !y) return "—";
-
       return `${m}-${y}`;
     };
 
-    const total = amount.total ?? 0;
-    const mpesa = amount.mpesa ?? null;
-    const cash = amount.cash ?? null;
+    const total = Number(amount.total) || 0;
+    const mpesa = Number(amount.mpesa) || null;
+    const cash = Number(amount.cash) || null;
 
     const qrUrl =
       "https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://jobawu.vercel.app/authenticated";
+
+    /* ---------------- PRELOAD QR IMAGE ---------------- */
+    await new Promise((resolve) => {
+      const img = new Image();
+      img.src = qrUrl;
+      img.onload = resolve;
+      img.onerror = resolve; // still allow print if QR fails
+    });
 
     const receiptHTML = `
 <!DOCTYPE html>
@@ -147,157 +153,130 @@ export function RecentPayments() {
 <title>Receipt</title>
 
 <style>
-  @page {
-    size: 58mm auto;
-    margin: 0;
-  }
+  @page { size: 58mm auto; margin: 0; }
 
   body {
     width: 58mm;
     margin: 0;
-    padding: 6px;
+    padding: 4px;
     font-family: monospace;
     font-size: 10px;
     color: #000;
-    font-stretch: condensed;
   }
 
   .center { text-align: center; }
   .bold { font-weight: bold; }
-  .line { border-top: 0px dashed #000; margin: 2px 0; }
+  .small { font-size: 9px; }
 
-  .row {
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .small { font-size: 10px; }
-
-  h2 {
+  .sep {
+    margin: 4px 0;
     text-align: center;
   }
+
+  .block { margin: 2px 0; }
 
   img.qr {
-    width: 32mm;
-    height: 32mm;
-  }
-  p {
-    text-align: center;
-    margin-top:4px;
+    width: 30mm;
+    height: 30mm;
   }
 </style>
 </head>
 
 <body>
 
-  <!-- LOGO -->
-  <div class="center">
-  <h2>JOBAWU GENERAL MERCHANTS</h2>
-  <div class="center small">
-    <div class="bold">CONTACT</div>
-    P.O BOX 57655 - 00200<br/>
-    Nairobi<br/>
-    TEL: 0728 290 280
-  </div>
-  </div>
+<div class="center bold">JOBAWU GENERAL MERCHANTS</div>
+<div class="center small">
+  P.O BOX 57655 - 00200<br/>
+  Nairobi<br/>
+  TEL: 0728 290 280
+</div>
 
-  <div class="center bold">PAYMENT RECEIPT</div>
+<div class="sep">--------------------------</div>
 
-<p> _____________________________ </p>
+<div class="center bold">PAYMENT RECEIPT</div>
 
-  <div class="small">
-    <div>Receipt No:</div>
-    <div class="bold">${id}</div>
+<div class="sep">--------------------------</div>
 
-    <div style="margin-top:4px;">Date:</div>
-    <div>${time}</div>
+<div class="block small">
+  Receipt No: <span class="bold">${id}</span><br/>
+  Date: ${time || "—"}
+</div>
 
-  </div>
+<div class="sep">--------------------------</div>
 
-<p> xxxxxxxxxxxxxxxxxxxxx </p>
+<div class="block bold">${plotName || "—"}</div>
 
-  <div>
-    <div>${plotName || "—"}</div>
-  </div>
+<div class="sep">--------------------------</div>
 
-<p> _____________________________ </p>
-  <div>
-    <div class="bold">Customer</div>
-    <div>${name}</div>
-    <div class="small">${phone}</div>
-  </div>
+<div class="block">
+  <span class="bold">Customer</span><br/>
+  ${name || "—"}<br/>
+  <span class="small">${phone || "—"}</span>
+</div>
 
-<p> _____________________________ </p>
-  <div>
-    <div class="row bold">
-      <p>TOTAL PAID:  KSH.${total.toLocaleString()}.00</p>
-    </div>
+<div class="sep">--------------------------</div>
 
-    ${
-      mpesa != null
-        ? `<div class="row"><span>MPESA</span><span>${mpesa}</span></div>`
-        : ""
-    }
-    ${
-      cash != null
-        ? `<div class="row"><span>CASH</span><span>${cash}</span></div>`
-        : ""
-    }
-  </div>
-   <div>
-    <div class="bold">Months Paid</div>
-    ${
-      monthPaid.length
-        ? monthPaid
-            .map(
-              m => `
-              <div class="row">
-                <span>${formatMonthLabel(m.month)}</span>
-                <span>KES ${m.amount}</span>
-              </div>
-            `
-            )
-            .join("")
-        : `<div class="small">—</div>`
-    }
-  </div>
+<div class="block bold">
+  TOTAL PAID: KES ${total.toLocaleString()}.00
+</div>
 
-<p> _____________________________ </p>
+${
+  mpesa != null
+    ? `<div class="block small">MPESA: KES ${mpesa.toLocaleString()}</div>`
+    : ""
+}
+${
+  cash != null
+    ? `<div class="block small">CASH: KES ${cash.toLocaleString()}</div>`
+    : ""
+}
 
-  <div>
-    <div class="bold">Status</div>
-    <div>${derivedStatus}</div>
+<div class="sep">--------------------------</div>
 
-    ${
-      less?.amount
-        ? `
-          <div class="small">
-            Due: KES ${less.amount}<br/>
-            Month: ${formatMonthLabel(less.dueMonth)}
-          </div>
-        `
-        : `<div class="small">Cleared</div>`
-    }
-  </div>
+<div class="block bold">Months Paid</div>
 
-<p> _____________________________ </p>
+${
+  monthPaid.length
+    ? monthPaid
+        .map(
+          (m) =>
+            `<div class="block small">${formatMonthLabel(m.month)} KES ${Number(
+              m.amount
+            ).toLocaleString()}</div>`
+        )
+        .join("")
+    : `<div class="block small">—</div>`
+}
 
-  <!-- QR CODE -->
-  <div class="center">
-    <img src="${qrUrl}" class="qr" />
-    <div class="small">Verify Payment</div>
-  </div>
+<div class="sep">--------------------------</div>
 
-<p> __________________________ </p>
+<div class="block bold">Status</div>
+<div class="block">${derivedStatus}</div>
 
-  <div class="center small">
-    Served by: <span class="bold">Grace</span>
-  </div>
+${
+  less?.amount
+    ? `<div class="block small">Due: KES ${Number(
+        less.amount
+      ).toLocaleString()} (${formatMonthLabel(less.dueMonth)})</div>`
+    : `<div class="block small">Cleared</div>`
+}
 
-<p> _____________________________ </p>
-  <div class="center bold">
-    Thank you!
-  </div>
+<div class="sep">--------------------------</div>
+
+<div class="center">
+  <img src="${qrUrl}" class="qr" /><br/>
+  <span class="small">Verify Payment</span>
+</div>
+
+<div class="sep">--------------------------</div>
+
+<div class="center small">
+  Served by: <span class="bold">Grace</span>
+</div>
+
+<div class="sep">--------------------------</div>
+
+<div class="center bold">Thank you!</div>
 
 </body>
 </html>
